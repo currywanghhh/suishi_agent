@@ -63,32 +63,92 @@ def index(request):
     return render(request, 'advisor/index.html')
 
 
+# 场景人格映射表
+PERSONA_MAPPING = {
+    # 情感与人际关系
+    'dating': 'a bold Fashion Editor meets Energy Healer',
+    'relationship': 'a straight-talking Relationship Coach with cosmic insights',
+    'breakup': 'a compassionate yet brutally honest Therapist',
+    'friendship': 'a wise Life Coach who keeps it real',
+    
+    # 职场与事业
+    'workplace': 'a sharp Corporate Strategist with Zen wisdom',
+    'career': 'a visionary Career Mentor who sees the bigger picture',
+    'conflict': 'a tough-love Mediator with clarity',
+    'leadership': 'a confident Executive Coach',
+    
+    # 个人成长
+    'decision': 'a decisive Life Strategist',
+    'habit': 'a no-nonsense Performance Coach',
+    'confidence': 'a fierce Empowerment Coach',
+    
+    # 默认
+    'default': 'a bold, intuitive Energy Strategist'
+}
+
+# 五行能量映射（北美化表达）
+ENERGY_ELEMENTS = {
+    'wood': 'Growth Energy - bold, expansive, forward-moving',
+    'fire': 'Passion Energy - magnetic, expressive, confident',
+    'earth': 'Grounding Energy - stable, centering, reliable',
+    'metal': 'Clarity Energy - sharp, decisive, structured',
+    'water': 'Flow Energy - adaptive, intuitive, resilient'
+}
+
+def get_persona_for_l4(l4_name):
+    """根据 L4 场景动态选择 AI 人格"""
+    l4_lower = l4_name.lower()
+    
+    # 匹配关键词
+    for keyword, persona in PERSONA_MAPPING.items():
+        if keyword in l4_lower:
+            return persona
+    
+    return PERSONA_MAPPING['default']
+
 def build_contextualized_prompt(user_query, l4_info, conversation_history):
     """构建包含 L4 语义边界和对话历史的 prompt"""
     
-    # 系统角色定义
-    system_role = """You are a warm, empathetic life advisor who talks like a caring friend.
+    # 动态选择人格
+    persona = get_persona_for_l4(l4_info['l4_name'])
+    
+    # 系统角色定义 - V2 犀利版
+    system_role = f"""You are {persona}.
 
-Core Requirements:
-1. Answer concisely (within 150 words), get to the point
-2. Use natural, conversational language with warmth and care
-3. Avoid mechanical lists or textbook-style numbered points like "1.Wood 2.Fire 3.Earth"
-4. You may subtly incorporate qualities like: growth, passion, stability, precision, flexibility (inspired by Wu Xing philosophy) into your advice, but DO NOT explicitly list or explain "Wood/Fire/Earth/Metal/Water" elements
-5. Provide specific, actionable advice with real-world scenarios
-6. Stay strictly within the specified topic scope"""
+Your Style:
+- Be DIRECT and CONFIDENT. No "you could try" or "it might be good to" - say "Do this" or "Don't do that".
+- Give ONE clear instruction, not 10 vague suggestions.
+- Be the friend who tells the truth, not the one who says "both options are fine".
+- Use natural, conversational English with personality.
+
+Output Structure (MANDATORY):
+1. **The Move:** (1-2 sentences, imperative mood) - What to do RIGHT NOW
+2. **Why It Works:** (2-3 sentences max) - The energy/logic behind it
+3. **Your Mantra:** (1 power phrase) - A quote to own this decision
+
+Example:
+**The Move:** Wear the beige trench coat with gold accessories.
+**Why It Works:** You're carrying too much emotional water today—beige grounds that energy like earth absorbing a flood. Gold adds a boundary, a signal that says "I'm here, but I'm not scattered."
+**Your Mantra:** "I am not asking for space. I am claiming it."
+
+Rules:
+- Stay within the topic scope
+- Keep total response under 100 words
+- Reference energy qualities naturally (Growth, Passion, Grounding, Clarity, Flow) - never say "Wood/Fire/Earth/Metal/Water"
+- Be bold but not rude. Think: confident best friend."""
     
     # 知识边界（L4 主题作为语义边界）
     knowledge_boundary = f"""
 
-Topic Scope: {l4_info['l4_name']}
-(Under: {l4_info['l1_name']} > {l4_info['l2_name']} > {l4_info['l3_name']})
+📍 Topic Focus: {l4_info['l4_name']}
+   (Context: {l4_info['l1_name']} → {l4_info['l2_name']} → {l4_info['l3_name']})
 
-Guiding Qualities (weave in naturally when appropriate, do not list or explain):
-- Growth, innovation, openness
-- Passion, expression, vitality
-- Stability, inclusiveness, grounding
-- Precision, boundaries, structure
-- Flexibility, adaptation, flow
+⚡ Energy Toolbox (use naturally, don't explain):
+   • Growth Energy - bold, expansive, forward-moving
+   • Passion Energy - magnetic, expressive, confident  
+   • Grounding Energy - stable, centering, reliable
+   • Clarity Energy - sharp, decisive, structured
+   • Flow Energy - adaptive, intuitive, resilient
 """
 
     # 对话历史（最近10轮）
@@ -101,12 +161,81 @@ Guiding Qualities (weave in naturally when appropriate, do not list or explain):
             history_text += f"{role_label}: {msg['content']}\n"
     
     # 当前问题
-    current_question = f"\n\nUser Question: {user_query}\n\nPlease respond in warm, natural English (within 150 words). Naturally integrate the guiding qualities into your advice with specific, actionable examples. No need to mention element names explicitly."
+    current_question = f"""\n\n💬 User Question: "{user_query}"
+
+🎯 Now respond following the 3-part structure:
+   **The Move:** [Direct instruction]
+   **Why It Works:** [Brief energy/logic explanation]
+   **Your Mantra:** [Power quote]
+
+Keep it under 100 words total. Be direct, be confident, be actionable."""
     
     # 组合完整 prompt
     full_prompt = system_role + knowledge_boundary + history_text + current_question
     
     return full_prompt
+
+def generate_decision_header(user_query, l4_info):
+    """
+    生成决策头部：信号灯 + 能量类型 + 核心指令
+    使用快速 LLM 调用（非流式）
+    """
+    if not SILICON_FLOW_API_KEY:
+        return None
+    
+    prompt = f"""Based on this question: "{user_query}"
+Topic: {l4_info['l4_name']}
+
+Generate a quick decision header in JSON format:
+{{
+  "signal": "🟢" or "🟡" or "🔴",
+  "vibe": "one of: Growth Energy / Passion Energy / Grounding Energy / Clarity Energy / Flow Energy",
+  "instruction": "one short imperative sentence (5-8 words)"
+}}
+
+Rules:
+- 🟢 Green = Go for it, confident move
+- 🟡 Yellow = Proceed with caution
+- 🔴 Red = Stop, reconsider
+- Choose the energy that fits best
+- Instruction must be direct and actionable
+
+Respond ONLY with valid JSON, no explanation."""
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {SILICON_FLOW_API_KEY}"
+    }
+    
+    payload = {
+        "model": LLM_MODEL,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 150,
+        "temperature": 0.5
+    }
+    
+    try:
+        response = requests.post(SILICON_FLOW_API_URL, headers=headers, 
+                                data=json.dumps(payload), timeout=30)
+        result = response.json()
+        content = result['choices'][0]['message']['content'].strip()
+        
+        # 尝试解析 JSON
+        import re
+        json_match = re.search(r'\{[^}]+\}', content, re.DOTALL)
+        if json_match:
+            decision = json.loads(json_match.group())
+            return decision
+        
+        # 如果解析失败，返回默认值
+        return {
+            "signal": "🟢",
+            "vibe": "Clarity Energy",
+            "instruction": "Trust your instinct and move forward"
+        }
+    except Exception as e:
+        print(f"[ERROR] 生成决策头部失败: {e}")
+        return None
 
 def call_llm_stream(prompt: str):
     """
@@ -445,6 +574,13 @@ def generate_stream_response(user_query, session_id='default'):
     topic_name = l4_info['l4_name']
     matched_msg = {'status': f'Topic: {topic_name}', 'section': 'header'}
     yield f"data: {json.dumps(matched_msg)}\n\n"
+    
+    # === V2 新增：生成决策头部（红绿灯系统） ===
+    print("[STREAM] 生成决策头部...", flush=True)
+    decision_header = generate_decision_header(user_query, l4_info)
+    if decision_header:
+        yield f"data: {json.dumps({'decision_header': decision_header})}\n\n"
+        print(f"[STREAM] 决策头部: {decision_header}", flush=True)
     
     # 构建 prompt（包含 L4 语义边界 + 对话历史）
     prompt = build_contextualized_prompt(user_query, l4_info, session['history'][:-1])  # 历史不包含当前问题

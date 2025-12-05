@@ -129,6 +129,56 @@
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
 
+        /* === V2 新增：决策头部样式 === */
+        .decision-header {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border-left: 4px solid #667eea;
+        }
+
+        .decision-signal {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .signal-icon {
+            font-size: 32px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .signal-text {
+            font-size: 14px;
+            color: #4e5969;
+            font-weight: 600;
+        }
+
+        .decision-vibe {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 6px 12px;
+            border-radius: 16px;
+            display: inline-block;
+            font-size: 13px;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .decision-instruction {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1f2329;
+            line-height: 1.5;
+        }
+
         /* 内容样式 */
         .section-title {
             font-size: 16px;
@@ -588,16 +638,36 @@
                                     return;
                                 }
 
+                                // === V2 新增：处理决策头部 ===
+                                if (data.decision_header) {
+                                    const header = data.decision_header;
+                                    const headerHTML = `
+                                        <div class="decision-header">
+                                            <div class="decision-signal">
+                                                <span class="signal-icon">${header.signal}</span>
+                                                <span class="signal-text">${
+                                                    header.signal === '🟢' ? 'Green Light - Go For It' :
+                                                    header.signal === '🟡' ? 'Yellow Light - Proceed With Caution' :
+                                                    'Red Light - Stop & Reconsider'
+                                                }</span>
+                                            </div>
+                                            <div class="decision-vibe">⚡ ${escapeHtml(header.vibe)}</div>
+                                            <div class="decision-instruction">${escapeHtml(header.instruction)}</div>
+                                        </div>
+                                    `;
+                                    responseContent.innerHTML = headerHTML;
+                                    isFirstContent = false;
+                                    scrollToBottom();
+                                }
+
                                 // 处理内容流
                                 if (data.content) {
-                                    if (isFirstContent) {
-                                        responseContent.innerHTML = '';
-                                        isFirstContent = false;
-                                    }
-                                    
                                     fullResponse += data.content;
-                                    // 实时渲染（保留换行格式）
-                                    responseContent.innerHTML = `<div style="white-space: pre-wrap;">${escapeHtml(fullResponse)}</div>`;
+                                    // 如果有决策头部，保留它并追加内容
+                                    const hasHeader = responseContent.querySelector('.decision-header');
+                                    const headerHTML = hasHeader ? hasHeader.outerHTML : '';
+                                    const contentHTML = `<div style="white-space: pre-wrap; margin-top: ${hasHeader ? '12px' : '0'};">${escapeHtml(fullResponse)}</div>`;
+                                    responseContent.innerHTML = headerHTML + contentHTML;
                                     scrollToBottom();
                                 }
                             } catch (e) {
