@@ -62,116 +62,113 @@ def index(request):
     """Render the main advisor interface"""
     return render(request, 'advisor/index.html')
 
-
-# 场景人格映射表
-PERSONA_MAPPING = {
-    # 情感与人际关系
-    'dating': 'a bold Fashion Editor meets Energy Healer',
-    'relationship': 'a straight-talking Relationship Coach with cosmic insights',
-    'breakup': 'a compassionate yet brutally honest Therapist',
-    'friendship': 'a wise Life Coach who keeps it real',
-    
-    # 职场与事业
-    'workplace': 'a sharp Corporate Strategist with Zen wisdom',
-    'career': 'a visionary Career Mentor who sees the bigger picture',
-    'conflict': 'a tough-love Mediator with clarity',
-    'leadership': 'a confident Executive Coach',
-    
-    # 个人成长
-    'decision': 'a decisive Life Strategist',
-    'habit': 'a no-nonsense Performance Coach',
-    'confidence': 'a fierce Empowerment Coach',
-    
-    # 默认
-    'default': 'a bold, intuitive Energy Strategist'
-}
-
-# 五行能量映射（北美化表达）
-ENERGY_ELEMENTS = {
-    'wood': 'Growth Energy - bold, expansive, forward-moving',
-    'fire': 'Passion Energy - magnetic, expressive, confident',
-    'earth': 'Grounding Energy - stable, centering, reliable',
-    'metal': 'Clarity Energy - sharp, decisive, structured',
-    'water': 'Flow Energy - adaptive, intuitive, resilient'
-}
-
-def get_persona_for_l4(l4_name):
-    """根据 L4 场景动态选择 AI 人格"""
-    l4_lower = l4_name.lower()
-    
-    # 匹配关键词
-    for keyword, persona in PERSONA_MAPPING.items():
-        if keyword in l4_lower:
-            return persona
-    
-    return PERSONA_MAPPING['default']
+# ========== 简化版配置（移除复杂的人格映射） ==========
+# 直接、简单的决策顾问 - 不需要复杂的人格切换
 
 def build_contextualized_prompt(user_query, l4_info, conversation_history):
-    """构建包含 L4 语义边界和对话历史的 prompt"""
+    """构建基于五行理论的直接决策 prompt"""
     
-    # 动态选择人格
-    persona = get_persona_for_l4(l4_info['l4_name'])
-    
-    # 系统角色定义 - V2 犀利版
-    system_role = f"""You are {persona}.
+    # 系统角色：五行决策顾问
+    system_role = """You are a Wu Xing (Five Elements) decision advisor who gives direct, confident answers.
 
-Your Style:
-- Be DIRECT and CONFIDENT. No "you could try" or "it might be good to" - say "Do this" or "Don't do that".
-- Give ONE clear instruction, not 10 vague suggestions.
-- Be the friend who tells the truth, not the one who says "both options are fine".
-- Use natural, conversational English with personality.
+Five Elements Principles (use the CONCEPTS, not the labels):
+- Wood: Growth, boldness, forward motion → describe as "moving forward", "taking initiative", "expanding"
+- Fire: Passion, visibility, expression → describe as "showing up", "being magnetic", "expressing yourself"
+- Earth: Stability, grounding, centering → describe as "grounded", "stable", "rooted", "calm"
+- Metal: Clarity, structure, boundaries → describe as "clear", "structured", "focused", "decisive"
+- Water: Flow, adaptability, intuition → describe as "flowing", "adaptive", "flexible", "intuitive"
 
-Output Structure (MANDATORY):
-1. **The Move:** (1-2 sentences, imperative mood) - What to do RIGHT NOW
-2. **Why It Works:** (2-3 sentences max) - The energy/logic behind it
-3. **Your Mantra:** (1 power phrase) - A quote to own this decision
+Your approach:
+1. Diagnose the situation using Five Elements principles (internally)
+2. Give ONE clear directive 
+3. Explain why using the QUALITIES (grounded, flowing, clear) NOT the element names
+4. Keep it under 80 words total
+
+Style rules:
+- Say "Do this" NOT "You could try..."
+- DON'T say "water energy" or "earth energy" - say "you're scattered" or "you need to be grounded"
+- Be conversational and natural - like a wise friend, not a textbook
+- Weave in the wisdom naturally, don't lecture about elements
 
 Example:
-**The Move:** Wear the beige trench coat with gold accessories.
-**Why It Works:** You're carrying too much emotional water today—beige grounds that energy like earth absorbing a flood. Gold adds a boundary, a signal that says "I'm here, but I'm not scattered."
-**Your Mantra:** "I am not asking for space. I am claiming it."
-
-Rules:
-- Stay within the topic scope
-- Keep total response under 100 words
-- Reference energy qualities naturally (Growth, Passion, Grounding, Clarity, Flow) - never say "Wood/Fire/Earth/Metal/Water"
-- Be bold but not rude. Think: confident best friend."""
+"Wear beige or brown. You're feeling scattered right now, and those tones will ground you—think of it like hitting pause on the chaos. Add one gold piece for a clean, focused accent. You're not trying to impress; you're showing up centered."
+"""
     
-    # 知识边界（L4 主题作为语义边界）
-    knowledge_boundary = f"""
+    # 话题范围和五行背景
+    topic_context = f"""
+Topic: {l4_info['l4_name']}
+Context: {l4_info['l1_name']} → {l4_info['l2_name']} → {l4_info['l3_name']}
 
-📍 Topic Focus: {l4_info['l4_name']}
-   (Context: {l4_info['l1_name']} → {l4_info['l2_name']} → {l4_info['l3_name']})
-
-⚡ Energy Toolbox (use naturally, don't explain):
-   • Growth Energy - bold, expansive, forward-moving
-   • Passion Energy - magnetic, expressive, confident  
-   • Grounding Energy - stable, centering, reliable
-   • Clarity Energy - sharp, decisive, structured
-   • Flow Energy - adaptive, intuitive, resilient
+Apply Five Elements wisdom to give guidance. Use the qualities naturally in your language.
 """
 
-    # 对话历史（最近10轮）
+    # 对话历史（如果有）
     history_text = ""
     if conversation_history:
-        recent_history = conversation_history[-20:]  # 最近10轮（每轮2条消息）
-        history_text = "\n\nConversation Context:\n"
+        recent_history = conversation_history[-20:]  # 最近10轮
+        history_text = "\nPrevious conversation:\n"
         for msg in recent_history:
             role_label = "User" if msg['role'] == 'user' else "You"
             history_text += f"{role_label}: {msg['content']}\n"
     
     # 当前问题
-    current_question = f"""\n\n💬 User Question: "{user_query}"
+    current_question = f"""
+User question: "{user_query}"
 
-🎯 Now respond following the 3-part structure:
-   **The Move:** [Direct instruction]
-   **Why It Works:** [Brief energy/logic explanation]
-   **Your Mantra:** [Power quote]
-
-Keep it under 100 words total. Be direct, be confident, be actionable."""
+Give your direct answer now (under 80 words). Be natural and conversational:"""
     
     # 组合完整 prompt
-    full_prompt = system_role + knowledge_boundary + history_text + current_question
+    full_prompt = system_role + topic_context + history_text + current_question
+    
+    return full_prompt
+
+
+def build_general_prompt(user_query, conversation_history):
+    """构建通用五行 prompt - 当没有匹配到知识库时使用"""
+    
+    # 系统角色：五行决策顾问（通用版）
+    system_role = """You are a Wu Xing (Five Elements) decision advisor who gives direct, confident answers.
+
+Five Elements Principles (use the CONCEPTS, not the labels):
+- Wood: Growth, boldness, forward motion → describe as "moving forward", "taking initiative", "expanding"
+- Fire: Passion, visibility, expression → describe as "showing up", "being magnetic", "expressing yourself"
+- Earth: Stability, grounding, centering → describe as "grounded", "stable", "rooted", "calm"
+- Metal: Clarity, structure, boundaries → describe as "clear", "structured", "focused", "decisive"
+- Water: Flow, adaptability, intuition → describe as "flowing", "adaptive", "flexible", "intuitive"
+
+Your approach:
+1. Diagnose the situation using Five Elements principles (internally)
+2. Give ONE clear directive 
+3. Explain why using the QUALITIES (grounded, flowing, clear) NOT the element names
+4. Keep it under 80 words total
+
+Style rules:
+- Say "Do this" NOT "You could try..."
+- DON'T say "water energy" or "earth energy" - say "you're scattered" or "you need to be grounded"
+- Be conversational and natural - like a wise friend, not a textbook
+- Weave in the wisdom naturally, don't lecture about elements
+
+Example:
+"Wear beige or brown. You're feeling scattered right now, and those tones will ground you—think of it like hitting pause on the chaos. Add one gold piece for a clean, focused accent. You're not trying to impress; you're showing up centered."
+"""
+
+    # 对话历史（如果有）
+    history_text = ""
+    if conversation_history:
+        recent_history = conversation_history[-20:]  # 最近10轮
+        history_text = "\nPrevious conversation:\n"
+        for msg in recent_history:
+            role_label = "User" if msg['role'] == 'user' else "You"
+            history_text += f"{role_label}: {msg['content']}\n"
+    
+    # 当前问题
+    current_question = f"""
+User question: "{user_query}"
+
+Give your direct answer now (under 80 words). Be natural and conversational:"""
+    
+    # 组合完整 prompt
+    full_prompt = system_role + history_text + current_question
     
     return full_prompt
 
@@ -546,43 +543,92 @@ def generate_stream_response(user_query, session_id='default'):
     print(f"[STREAM] 返回的 L4 ID: {l4_id}", flush=True)
     sys.stdout.flush()
     
+    # 添加用户消息到历史
+    add_to_history(session_id, 'user', user_query)
+    
+    # === 兜底逻辑：如果没有匹配到 L4，直接用通用 prompt ===
     if not l4_id:
-        print("[STREAM] L4 ID 为 None，返回错误", flush=True)
+        print("[STREAM] L4 匹配失败，使用通用模式回答", flush=True)
         sys.stdout.flush()
-        yield f"data: {json.dumps({'error': 'Could not find a relevant topic in our knowledge base.'})}\n\n"
+        
+        # 发送状态提示
+        yield f"data: {json.dumps({'status': 'Answering your question...'})}\n\n"
+        
+        # 构建通用 prompt（不依赖知识库）
+        prompt = build_general_prompt(user_query, session['history'][:-1])
+        
+        print(f"[STREAM] 使用通用 Prompt，长度: {len(prompt)} 字符", flush=True)
+        
+        # 调用 LLM 流式生成
+        assistant_response = ""
+        for chunk in call_llm_stream(prompt):
+            if chunk.startswith("data:"):
+                yield chunk
+                try:
+                    data = json.loads(chunk[6:])
+                    if 'content' in data:
+                        assistant_response += data['content']
+                except:
+                    pass
+        
+        # 添加助手回复到历史
+        if assistant_response:
+            add_to_history(session_id, 'assistant', assistant_response)
+        
+        # 发送完成信号
         yield "data: [DONE]\n\n"
-        print("[STREAM] 流式响应完成（错误退出）", flush=True)
+        print("[STREAM] 流式响应完成（通用模式）", flush=True)
+        sys.stdout.flush()
         return
     
+    # === 正常流程：匹配到了 L4 ===
     # Get L4 basic info as semantic boundary
     l4_info = get_l4_info(l4_id)
     
     if not l4_info:
-        yield f"data: {json.dumps({'error': 'Topic not found in knowledge base.'})}\n\n"
+        print("[STREAM] L4信息获取失败，使用通用模式回答", flush=True)
+        sys.stdout.flush()
+        
+        # 发送状态提示
+        yield f"data: {json.dumps({'status': 'Answering your question...'})}\n\n"
+        
+        # 构建通用 prompt
+        prompt = build_general_prompt(user_query, session['history'][:-1])
+        
+        print(f"[STREAM] 使用通用 Prompt，长度: {len(prompt)} 字符", flush=True)
+        
+        # 调用 LLM 流式生成
+        assistant_response = ""
+        for chunk in call_llm_stream(prompt):
+            if chunk.startswith("data:"):
+                yield chunk
+                try:
+                    data = json.loads(chunk[6:])
+                    if 'content' in data:
+                        assistant_response += data['content']
+                except:
+                    pass
+        
+        # 添加助手回复到历史
+        if assistant_response:
+            add_to_history(session_id, 'assistant', assistant_response)
+        
+        # 发送完成信号
         yield "data: [DONE]\n\n"
-        print("[STREAM] 流式响应完成（L4信息未找到）", flush=True)
+        print("[STREAM] 流式响应完成（通用模式 - L4信息缺失）", flush=True)
+        sys.stdout.flush()
         return
     
     # 更新会话中的 L4 信息
     session['l4_id'] = l4_id
     session['l4_info'] = l4_info
     
-    # 添加用户消息到历史
-    add_to_history(session_id, 'user', user_query)
-    
     # Send matched topic
     topic_name = l4_info['l4_name']
     matched_msg = {'status': f'Topic: {topic_name}', 'section': 'header'}
     yield f"data: {json.dumps(matched_msg)}\n\n"
     
-    # === V2 新增：生成决策头部（红绿灯系统） ===
-    print("[STREAM] 生成决策头部...", flush=True)
-    decision_header = generate_decision_header(user_query, l4_info)
-    if decision_header:
-        yield f"data: {json.dumps({'decision_header': decision_header})}\n\n"
-        print(f"[STREAM] 决策头部: {decision_header}", flush=True)
-    
-    # 构建 prompt（包含 L4 语义边界 + 对话历史）
+    # 构建 prompt（简洁版）
     prompt = build_contextualized_prompt(user_query, l4_info, session['history'][:-1])  # 历史不包含当前问题
     
     print(f"[STREAM] 构建的 Prompt 长度: {len(prompt)} 字符", flush=True)
