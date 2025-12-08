@@ -65,7 +65,7 @@ def index(request):
 # ========== 简化版配置（移除复杂的人格映射） ==========
 # 直接、简单的决策顾问 - 不需要复杂的人格切换
 
-def build_contextualized_prompt(user_query, l4_info, conversation_history):
+def build_contextualized_prompt(user_query, l4_info, conversation_history, bazi_text=None):
     """构建基于五行理论的直接决策 prompt"""
     
     # 系统角色：五行决策顾问
@@ -94,6 +94,23 @@ Example:
 "Wear beige or brown. You're feeling scattered right now, and those tones will ground you—think of it like hitting pause on the chaos. Add one gold piece for a clean, focused accent. You're not trying to impress; you're showing up centered."
 """
     
+    # === V2 新增：八字信息（如果有） ===
+    bazi_context = ""
+    if bazi_text:
+        bazi_context = f"""
+=== User's Bazi (Birth Chart) ===
+{bazi_text}
+
+Use this Bazi information to provide personalized Five Elements guidance. Consider:
+- The balance of Five Elements in their chart
+- Their Day Master (日主) element
+- Current Luck Pillar (大运) influence
+- Relevant spirit stars (神煞)
+
+Integrate this astrological context naturally into your advice.
+===
+"""
+    
     # 话题范围和五行背景
     topic_context = f"""
 Topic: {l4_info['l4_name']}
@@ -118,12 +135,12 @@ User question: "{user_query}"
 Give your direct answer now (under 80 words). Be natural and conversational:"""
     
     # 组合完整 prompt
-    full_prompt = system_role + topic_context + history_text + current_question
+    full_prompt = system_role + bazi_context + topic_context + history_text + current_question
     
     return full_prompt
 
 
-def build_general_prompt(user_query, conversation_history):
+def build_general_prompt(user_query, conversation_history, bazi_text=None):
     """构建通用五行 prompt - 当没有匹配到知识库时使用"""
     
     # 系统角色：五行决策顾问（通用版）
@@ -152,6 +169,23 @@ Example:
 "Wear beige or brown. You're feeling scattered right now, and those tones will ground you—think of it like hitting pause on the chaos. Add one gold piece for a clean, focused accent. You're not trying to impress; you're showing up centered."
 """
 
+    # === V2 新增：八字信息（如果有） ===
+    bazi_context = ""
+    if bazi_text:
+        bazi_context = f"""
+=== User's Bazi (Birth Chart) ===
+{bazi_text}
+
+Use this Bazi information to provide personalized Five Elements guidance. Consider:
+- The balance of Five Elements in their chart
+- Their Day Master (日主) element
+- Current Luck Pillar (大运) influence
+- Relevant spirit stars (神煞)
+
+Integrate this astrological context naturally into your advice.
+===
+"""
+
     # 对话历史（如果有）
     history_text = ""
     if conversation_history:
@@ -168,7 +202,7 @@ User question: "{user_query}"
 Give your direct answer now (under 80 words). Be natural and conversational:"""
     
     # 组合完整 prompt
-    full_prompt = system_role + history_text + current_question
+    full_prompt = system_role + bazi_context + history_text + current_question
     
     return full_prompt
 
@@ -517,7 +551,7 @@ def get_l4_info(l4_id):
             conn.close()
 
 
-def generate_stream_response(user_query, session_id='default'):
+def generate_stream_response(user_query, session_id='default', bazi_data=None):
     """Generate streaming response with L4 knowledge boundary and conversation context"""
     
     import sys
@@ -525,11 +559,45 @@ def generate_stream_response(user_query, session_id='default'):
     print(f"[STREAM] 开始生成流式响应", flush=True)
     print(f"[STREAM] Session ID: '{session_id}'", flush=True)
     print(f"[STREAM] 用户问题: '{user_query}'", flush=True)
+    print(f"[STREAM] 八字数据: {bazi_data}", flush=True)
     print(f"{'='*60}\n", flush=True)
     sys.stdout.flush()
     
     # 获取会话
     session = get_or_create_session(session_id)
+    
+    # === V2 新增：调用 MCP 获取排盘结果 ===
+    bazi_result = None
+    bazi_text = None
+    if bazi_data:
+        from .bazi_mcp_client import call_bazi_mcp, format_bazi_for_llm
+        
+        yield f"data: {json.dumps({'status': 'Getting Bazi chart...'})}\n\n"
+        
+        print("[MCP] 开始调用 bazi-mcp 工具...", flush=True)
+        sys.stdout.flush()
+        
+        bazi_result = call_bazi_mcp(
+            solar_datetime=bazi_data.get('solar_datetime'),
+            gender=bazi_data.get('gender', 1)
+        )
+        
+        if bazi_result:
+            print("[MCP] ✅ 成功获取八字排盘结果", flush=True)
+            sys.stdout.flush()
+            bazi_text = format_bazi_for_llm(bazi_result)
+            # 保存到会话中，后续对话可以复用
+            session['bazi_result'] = bazi_result
+            session['bazi_text'] = bazi_text
+        else:
+            print("[MCP] ❌ 获取八字排盘失败", flush=True)
+            sys.stdout.flush()
+    else:
+        # 尝试从会话中获取之前的八字信息
+        bazi_text = session.get('bazi_text')
+        if bazi_text:
+            print("[MCP] 使用会话中保存的八字信息", flush=True)
+            sys.stdout.flush()
     
     # Send initial status
     yield f"data: {json.dumps({'status': 'Analyzing your question...'})}\n\n"
@@ -555,9 +623,11 @@ def generate_stream_response(user_query, session_id='default'):
         yield f"data: {json.dumps({'status': 'Answering your question...'})}\n\n"
         
         # 构建通用 prompt（不依赖知识库）
-        prompt = build_general_prompt(user_query, session['history'][:-1])
+        prompt = build_general_prompt(user_query, session['history'][:-1], bazi_text)
         
         print(f"[STREAM] 使用通用 Prompt，长度: {len(prompt)} 字符", flush=True)
+        if bazi_text:
+            print(f"[STREAM] 已整合八字信息到 Prompt", flush=True)
         
         # 调用 LLM 流式生成
         assistant_response = ""
@@ -593,9 +663,11 @@ def generate_stream_response(user_query, session_id='default'):
         yield f"data: {json.dumps({'status': 'Answering your question...'})}\n\n"
         
         # 构建通用 prompt
-        prompt = build_general_prompt(user_query, session['history'][:-1])
+        prompt = build_general_prompt(user_query, session['history'][:-1], bazi_text)
         
         print(f"[STREAM] 使用通用 Prompt，长度: {len(prompt)} 字符", flush=True)
+        if bazi_text:
+            print(f"[STREAM] 已整合八字信息到 Prompt", flush=True)
         
         # 调用 LLM 流式生成
         assistant_response = ""
@@ -629,9 +701,11 @@ def generate_stream_response(user_query, session_id='default'):
     yield f"data: {json.dumps(matched_msg)}\n\n"
     
     # 构建 prompt（简洁版）
-    prompt = build_contextualized_prompt(user_query, l4_info, session['history'][:-1])  # 历史不包含当前问题
+    prompt = build_contextualized_prompt(user_query, l4_info, session['history'][:-1], bazi_text)  # 历史不包含当前问题
     
-    print(f"[STREAM] 构建的 Prompt 长度: {len(prompt)} 字符", flush=True)
+    print(f"[STREAM] 构建知识库增强 Prompt，长度: {len(prompt)} 字符", flush=True)
+    if bazi_text:
+        print(f"[STREAM] 已整合八字信息到 Prompt", flush=True)
     
     # 调用 LLM 流式生成
     assistant_response = ""
@@ -669,10 +743,21 @@ def ask_advisor(request):
         else:
             print(f"[SESSION] 使用现有会话ID: {session_id}")
         
+        # === V2 新增：获取八字数据 ===
+        bazi_data_str = request.POST.get('bazi_data', '').strip()
+        bazi_data = None
+        if bazi_data_str:
+            try:
+                bazi_data = json.loads(bazi_data_str)
+                print(f"[BAZI] 收到命理数据: {bazi_data}")
+            except json.JSONDecodeError:
+                print(f"[BAZI] 解析命理数据失败: {bazi_data_str}")
+        
         # 添加调试日志
         print(f"\n{'='*60}")
         print(f"[REQUEST] 收到用户问题: '{user_query}'")
         print(f"[REQUEST] 会话ID: {session_id}")
+        print(f"[REQUEST] 八字数据: {'有' if bazi_data else '无'}")
         print(f"[REQUEST] API Key存在: {bool(SILICON_FLOW_API_KEY)}")
         print(f"[REQUEST] 使用模型: {LLM_MODEL}")
         print(f"{'='*60}\n")
@@ -685,7 +770,7 @@ def ask_advisor(request):
             )
         
         response = StreamingHttpResponse(
-            generate_stream_response(user_query, session_id),
+            generate_stream_response(user_query, session_id, bazi_data),
             content_type='text/event-stream'
         )
         response['Cache-Control'] = 'no-cache'

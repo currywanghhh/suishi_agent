@@ -235,6 +235,101 @@
             flex-wrap: wrap;
         }
 
+        /* === V2 新增：八字输入表单样式 === */
+        .bazi-form-container {
+            background: #f7f8fa;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid #e5e6eb;
+        }
+
+        .bazi-form-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .bazi-form-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #1f2329;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bazi-toggle-icon {
+            font-size: 12px;
+            color: #86909c;
+            transition: transform 0.3s;
+        }
+
+        .bazi-toggle-icon.open {
+            transform: rotate(180deg);
+        }
+
+        .bazi-form-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .bazi-form-content.show {
+            max-height: 500px;
+        }
+
+        .bazi-form-fields {
+            margin-top: 16px;
+        }
+
+        .bazi-form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .bazi-form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .bazi-form-field.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .bazi-form-field label {
+            font-size: 12px;
+            color: #4e5969;
+            font-weight: 500;
+        }
+
+        .bazi-form-field input,
+        .bazi-form-field select {
+            padding: 8px 12px;
+            border: 1px solid #e5e6eb;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .bazi-form-field input:focus,
+        .bazi-form-field select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .bazi-hint {
+            font-size: 12px;
+            color: #86909c;
+            margin-top: 4px;
+        }
+
         .chip {
             padding: 6px 14px;
             background: #f2f3f5;
@@ -448,6 +543,53 @@
         <!-- 输入区域 -->
         <div class="input-area">
             <div class="input-wrapper">
+                <!-- === V2 新增：八字输入表单 === -->
+                <div class="bazi-form-container">
+                    <div class="bazi-form-header" id="bazi-form-toggle">
+                        <div class="bazi-form-title">
+                            🔮 命理信息（可选）
+                        </div>
+                        <div class="bazi-toggle-icon">▼</div>
+                    </div>
+                    <div class="bazi-form-content" id="bazi-form-content">
+                        <div class="bazi-form-fields">
+                            <div class="bazi-form-row">
+                                <div class="bazi-form-field">
+                                    <label for="birth-date">出生日期（公历）</label>
+                                    <input type="date" id="birth-date" placeholder="例如：1998-07-31">
+                                </div>
+                                <div class="bazi-form-field">
+                                    <label for="birth-time">出生时间</label>
+                                    <input type="time" id="birth-time" placeholder="例如：14:10">
+                                </div>
+                            </div>
+                            <div class="bazi-form-row">
+                                <div class="bazi-form-field">
+                                    <label for="gender">性别</label>
+                                    <select id="gender">
+                                        <option value="1">男</option>
+                                        <option value="0">女</option>
+                                    </select>
+                                </div>
+                                <div class="bazi-form-field">
+                                    <label for="timezone">时区</label>
+                                    <select id="timezone">
+                                        <option value="+08:00" selected>GMT+8 (北京时间)</option>
+                                        <option value="+09:00">GMT+9 (东京)</option>
+                                        <option value="+07:00">GMT+7 (曼谷)</option>
+                                        <option value="+00:00">GMT+0 (伦敦)</option>
+                                        <option value="-05:00">GMT-5 (纽约)</option>
+                                        <option value="-08:00">GMT-8 (洛杉矶)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="bazi-hint">
+                                💡 提示：输入命理信息后，系统将基于您的八字进行更精准的五行分析
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="example-chips" id="example-chips">
                     <div class="chip">How to handle cultural differences in dating?</div>
                     <div class="chip">How to balance work and personal time?</div>
@@ -467,6 +609,21 @@
         const queryInput = document.getElementById('query-input');
         const sendBtn = document.getElementById('send-btn');
         const exampleChips = document.querySelectorAll('.chip');
+
+        // === V2 新增：八字表单元素 ===
+        const baziFormToggle = document.getElementById('bazi-form-toggle');
+        const baziFormContent = document.getElementById('bazi-form-content');
+        const baziToggleIcon = baziFormToggle.querySelector('.bazi-toggle-icon');
+        const birthDateInput = document.getElementById('birth-date');
+        const birthTimeInput = document.getElementById('birth-time');
+        const genderInput = document.getElementById('gender');
+        const timezoneInput = document.getElementById('timezone');
+
+        // 八字表单折叠/展开
+        baziFormToggle.addEventListener('click', () => {
+            baziFormContent.classList.toggle('show');
+            baziToggleIcon.classList.toggle('open');
+        });
 
         // Session管理：获取或生成session_id
         let sessionId = localStorage.getItem('advisor_session_id');
@@ -576,10 +733,27 @@
             // 添加助手消息框
             const responseContent = addAssistantMessage();
 
+            // === V2 新增：收集八字数据 ===
+            let baziData = null;
+            if (birthDateInput.value && birthTimeInput.value) {
+                // 构建ISO格式的公历时间
+                const solarDatetime = `${birthDateInput.value}T${birthTimeInput.value}:00${timezoneInput.value}`;
+                baziData = {
+                    solar_datetime: solarDatetime,
+                    gender: parseInt(genderInput.value),
+                };
+                console.log('[Bazi] 收集到命理数据:', baziData);
+            }
+
             // 创建form data
             const formData = new FormData();
             formData.append('query', query);
             formData.append('session_id', sessionId);  // 发送session_id
+            
+            // 添加八字数据
+            if (baziData) {
+                formData.append('bazi_data', JSON.stringify(baziData));
+            }
 
             // 获取CSRF token
             const csrftoken = getCookie('csrftoken');
