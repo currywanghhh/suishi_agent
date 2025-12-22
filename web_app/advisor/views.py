@@ -10,12 +10,18 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configuration
+# LLM Provider: 'silicon_flow' or 'ollama'
+LLM_PROVIDER = os.getenv('LLM_PROVIDER', 'ollama').strip('"').strip("'").lower()
+
+# Silicon Flow Configuration
 SILICON_FLOW_API_URL = 'https://api.siliconflow.cn/v1/chat/completions'
 SILICON_FLOW_API_KEY = os.getenv('SILICON_FLOW_API_KEY')
-
-# 去掉环境变量中可能的引号
 if SILICON_FLOW_API_KEY:
     SILICON_FLOW_API_KEY = SILICON_FLOW_API_KEY.strip('"').strip("'")
+
+# Ollama Configuration
+OLLAMA_API_URL = os.getenv('OLLAMA_API_URL', 'http://localhost:11434/api/chat').strip('"').strip("'")
+OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'gemma3:4b').strip('"').strip("'")
 
 DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'localhost').strip('"').strip("'"),
@@ -28,12 +34,15 @@ DB_CONFIG = {
     'autocommit': True
 }
 
-# 使用快速模型进行简单的 ID 选择任务
-LLM_MODEL = "Qwen/Qwen3-32B"  # 修正模型名称
-# 常见的可用模型：
-# - "Qwen/Qwen2.5-7B-Instruct"
-# - "deepseek-ai/DeepSeek-V2.5"
-# - "01-ai/Yi-1.5-9B-Chat"
+# LLM Model (根据provider自动选择)
+if LLM_PROVIDER == 'ollama':
+    LLM_MODEL = OLLAMA_MODEL
+    LLM_API_URL = OLLAMA_API_URL
+    LLM_API_KEY = None  # Ollama不需要API Key
+else:
+    LLM_MODEL = "Qwen/Qwen3-32B"
+    LLM_API_URL = SILICON_FLOW_API_URL
+    LLM_API_KEY = SILICON_FLOW_API_KEY
 
 # 会话管理：存储多轮对话历史（生产环境应使用 Redis/数据库）
 SESSION_STORE = {}
@@ -65,56 +74,92 @@ def index(request):
 # ========== 简化版配置（移除复杂的人格映射） ==========
 # 直接、简单的决策顾问 - 不需要复杂的人格切换
 
-def build_contextualized_prompt(user_query, l4_info, conversation_history, bazi_text=None):
+# ========== V4 新增：文化映射表加载 ==========
+def load_cultural_mapping():
+    """加载50州文化映射表"""
+    try:
+        mapping_path = os.path.join(os.path.dirname(__file__), 'cultural_mapping.json')
+        with open(mapping_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"[Cultural] Failed to load mapping: {e}")
+        return None
+
+def get_cultural_context(state_name):
+    """根据用户所在州获取文化上下文提示"""
+    mapping = load_cultural_mapping()
+    if not mapping:
+        return ""
+    
+    if state_name and state_name in mapping.get('states', {}):
+        state_info = mapping['states'][state_name]
+        return f"""
+=== Cultural Context - FOR YOUR REFERENCE ONLY ===
+{state_info['prompt_text']}
+
+IMPORTANT: Use this cultural background to INFORM your advice style, but:
+- DO NOT mention the state name (e.g., "Since you're from Kentucky...")
+- DO NOT explicitly reference their location
+- Instead, naturally adapt your tone, examples, and suggestions to resonate with their background
+- Say things like "given your values" or "based on what matters to you" if needed
+===
+"""
+    return ""
+
+def build_contextualized_prompt(user_query, l4_info, conversation_history, bazi_text=None, user_state=None):
     """构建基于五行理论的直接决策 prompt"""
     
     # 系统角色：五行决策顾问
-    system_role = """You are a Wu Xing (Five Elements) decision advisor who gives direct, confident answers.
+    system_role = """You are a Wu Xing (Five Elements) personal growth advisor who empowers users to become their strongest, best selves.
+
+Core Mission:
+Every piece of advice you give should help the user GROW STRONGER, make BETTER DECISIONS, and become a MORE CAPABLE person. Frame your guidance as tools for self-improvement and personal mastery.
 
 Five Elements Principles (use the CONCEPTS, not the labels):
-- Wood: Growth, boldness, forward motion → describe as "moving forward", "taking initiative", "expanding"
-- Fire: Passion, visibility, expression → describe as "showing up", "being magnetic", "expressing yourself"
-- Earth: Stability, grounding, centering → describe as "grounded", "stable", "rooted", "calm"
-- Metal: Clarity, structure, boundaries → describe as "clear", "structured", "focused", "decisive"
-- Water: Flow, adaptability, intuition → describe as "flowing", "adaptive", "flexible", "intuitive"
+- Wood: Growth, boldness, forward motion - describe as "moving forward", "taking initiative", "expanding your potential"
+- Fire: Passion, visibility, expression - describe as "stepping into your power", "being magnetic", "expressing your authentic self"
+- Earth: Stability, grounding, centering - describe as "building your foundation", "staying grounded", "cultivating inner strength"
+- Metal: Clarity, structure, boundaries - describe as "sharpening your focus", "setting clear boundaries", "making decisive moves"
+- Water: Flow, adaptability, intuition - describe as "trusting your instincts", "adapting with wisdom", "flowing through challenges"
 
 Your approach:
 1. Diagnose the situation using Five Elements principles (internally)
-2. Give ONE clear directive 
-3. Explain why using the QUALITIES (grounded, flowing, clear) NOT the element names
+2. Give ONE clear directive that makes them STRONGER
+3. Explain how this action builds their capability or character
 4. Keep it under 80 words total
 
 Style rules:
-- Say "Do this" NOT "You could try..."
-- DON'T say "water energy" or "earth energy" - say "you're scattered" or "you need to be grounded"
-- Be conversational and natural - like a wise friend, not a textbook
-- Weave in the wisdom naturally, don't lecture about elements
+- Say "Do this" NOT "You could try..." - be confident and empowering
+- DON'T say "water energy" or "earth energy" - say "you're building strength" or "you're developing clarity"
+- Be like a wise coach who believes in their potential
+- Every answer should leave them feeling MORE capable, not dependent
 
 Example:
-"Wear beige or brown. You're feeling scattered right now, and those tones will ground you—think of it like hitting pause on the chaos. Add one gold piece for a clean, focused accent. You're not trying to impress; you're showing up centered."
+"Wear beige or brown. Right now you're scattered - these grounded tones will help you center your power. Add one gold piece for sharp focus. You're not trying to impress anyone; you're showing up as someone who knows their own strength."
 """
     
     # === V2 新增：八字信息（如果有） ===
     bazi_context = ""
     if bazi_text:
         bazi_context = f"""
-=== User's Bazi (Birth Chart) ===
+=== User's Bazi (Birth Chart) - FOR YOUR REFERENCE ONLY ===
 {bazi_text}
 
-Use this Bazi information to provide personalized Five Elements guidance. Consider:
-- The balance of Five Elements in their chart
-- Their Day Master (日主) element
-- Current Luck Pillar (大运) influence
-- Relevant spirit stars (神煞)
-
-Integrate this astrological context naturally into your advice.
+IMPORTANT: Use this Bazi information as BACKGROUND CONTEXT to inform your advice, but:
+- DO NOT mention specific Bazi terms like "己亥", "甲木", "大运" etc. in your response
+- DO NOT say "based on your Bazi" or "your birth chart shows"
+- Instead, say things like "based on your natural tendencies" or "given your strengths"
+- Weave the insights naturally without revealing the source
 ===
 """
+    
+    # === V4 新增：文化上下文（如果有） ===
+    cultural_context = get_cultural_context(user_state)
     
     # 话题范围和五行背景
     topic_context = f"""
 Topic: {l4_info['l4_name']}
-Context: {l4_info['l1_name']} → {l4_info['l2_name']} → {l4_info['l3_name']}
+Context: {l4_info['l1_name']} > {l4_info['l2_name']} > {l4_info['l3_name']}
 
 Apply Five Elements wisdom to give guidance. Use the qualities naturally in your language.
 """
@@ -135,56 +180,60 @@ User question: "{user_query}"
 Give your direct answer now (under 80 words). Be natural and conversational:"""
     
     # 组合完整 prompt
-    full_prompt = system_role + bazi_context + topic_context + history_text + current_question
+    full_prompt = system_role + bazi_context + cultural_context + topic_context + history_text + current_question
     
     return full_prompt
 
 
-def build_general_prompt(user_query, conversation_history, bazi_text=None):
+def build_general_prompt(user_query, conversation_history, bazi_text=None, user_state=None):
     """构建通用五行 prompt - 当没有匹配到知识库时使用"""
     
     # 系统角色：五行决策顾问（通用版）
-    system_role = """You are a Wu Xing (Five Elements) decision advisor who gives direct, confident answers.
+    system_role = """You are a Wu Xing (Five Elements) personal growth advisor who empowers users to become their strongest, best selves.
+
+Core Mission:
+Every piece of advice you give should help the user GROW STRONGER, make BETTER DECISIONS, and become a MORE CAPABLE person. Frame your guidance as tools for self-improvement and personal mastery.
 
 Five Elements Principles (use the CONCEPTS, not the labels):
-- Wood: Growth, boldness, forward motion → describe as "moving forward", "taking initiative", "expanding"
-- Fire: Passion, visibility, expression → describe as "showing up", "being magnetic", "expressing yourself"
-- Earth: Stability, grounding, centering → describe as "grounded", "stable", "rooted", "calm"
-- Metal: Clarity, structure, boundaries → describe as "clear", "structured", "focused", "decisive"
-- Water: Flow, adaptability, intuition → describe as "flowing", "adaptive", "flexible", "intuitive"
+- Wood: Growth, boldness, forward motion - describe as "moving forward", "taking initiative", "expanding your potential"
+- Fire: Passion, visibility, expression - describe as "stepping into your power", "being magnetic", "expressing your authentic self"
+- Earth: Stability, grounding, centering - describe as "building your foundation", "staying grounded", "cultivating inner strength"
+- Metal: Clarity, structure, boundaries - describe as "sharpening your focus", "setting clear boundaries", "making decisive moves"
+- Water: Flow, adaptability, intuition - describe as "trusting your instincts", "adapting with wisdom", "flowing through challenges"
 
 Your approach:
 1. Diagnose the situation using Five Elements principles (internally)
-2. Give ONE clear directive 
-3. Explain why using the QUALITIES (grounded, flowing, clear) NOT the element names
+2. Give ONE clear directive that makes them STRONGER
+3. Explain how this action builds their capability or character
 4. Keep it under 80 words total
 
 Style rules:
-- Say "Do this" NOT "You could try..."
-- DON'T say "water energy" or "earth energy" - say "you're scattered" or "you need to be grounded"
-- Be conversational and natural - like a wise friend, not a textbook
-- Weave in the wisdom naturally, don't lecture about elements
+- Say "Do this" NOT "You could try..." - be confident and empowering
+- DON'T say "water energy" or "earth energy" - say "you're building strength" or "you're developing clarity"
+- Be like a wise coach who believes in their potential
+- Every answer should leave them feeling MORE capable, not dependent
 
 Example:
-"Wear beige or brown. You're feeling scattered right now, and those tones will ground you—think of it like hitting pause on the chaos. Add one gold piece for a clean, focused accent. You're not trying to impress; you're showing up centered."
+"Wear beige or brown. Right now you're scattered - these grounded tones will help you center your power. Add one gold piece for sharp focus. You're not trying to impress anyone; you're showing up as someone who knows their own strength."
 """
 
     # === V2 新增：八字信息（如果有） ===
     bazi_context = ""
     if bazi_text:
         bazi_context = f"""
-=== User's Bazi (Birth Chart) ===
+=== User's Bazi (Birth Chart) - FOR YOUR REFERENCE ONLY ===
 {bazi_text}
 
-Use this Bazi information to provide personalized Five Elements guidance. Consider:
-- The balance of Five Elements in their chart
-- Their Day Master (日主) element
-- Current Luck Pillar (大运) influence
-- Relevant spirit stars (神煞)
-
-Integrate this astrological context naturally into your advice.
+IMPORTANT: Use this Bazi information as BACKGROUND CONTEXT to inform your advice, but:
+- DO NOT mention specific Bazi terms like "己亥", "甲木", "大运" etc. in your response
+- DO NOT say "based on your Bazi" or "your birth chart shows"
+- Instead, say things like "based on your natural tendencies" or "given your strengths"
+- Weave the insights naturally without revealing the source
 ===
 """
+
+    # === V4 新增：文化上下文（如果有） ===
+    cultural_context = get_cultural_context(user_state)
 
     # 对话历史（如果有）
     history_text = ""
@@ -202,7 +251,7 @@ User question: "{user_query}"
 Give your direct answer now (under 80 words). Be natural and conversational:"""
     
     # 组合完整 prompt
-    full_prompt = system_role + bazi_context + history_text + current_question
+    full_prompt = system_role + bazi_context + cultural_context + history_text + current_question
     
     return full_prompt
 
@@ -211,7 +260,7 @@ def generate_decision_header(user_query, l4_info):
     生成决策头部：信号灯 + 能量类型 + 核心指令
     使用快速 LLM 调用（非流式）
     """
-    if not SILICON_FLOW_API_KEY:
+    if LLM_PROVIDER == 'silicon_flow' and not SILICON_FLOW_API_KEY:
         return None
     
     prompt = f"""Based on this question: "{user_query}"
@@ -233,10 +282,9 @@ Rules:
 
 Respond ONLY with valid JSON, no explanation."""
 
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {SILICON_FLOW_API_KEY}"
-    }
+    headers = {"Content-Type": "application/json"}
+    if LLM_API_KEY:
+        headers["Authorization"] = f"Bearer {LLM_API_KEY}"
     
     payload = {
         "model": LLM_MODEL,
@@ -246,10 +294,10 @@ Respond ONLY with valid JSON, no explanation."""
     }
     
     try:
-        response = requests.post(SILICON_FLOW_API_URL, headers=headers, 
+        response = requests.post(LLM_API_URL, headers=headers, 
                                 data=json.dumps(payload), timeout=30)
         result = response.json()
-        content = result['choices'][0]['message']['content'].strip()
+        content = result['choices'][0]['message']['content'].strip() if 'choices' in result else result.get('message', {}).get('content', '').strip()
         
         # 尝试解析 JSON
         import re
@@ -273,26 +321,28 @@ def call_llm_stream(prompt: str):
     Call LLM API with streaming enabled.
     Yields chunks of text as they arrive.
     """
-    if not SILICON_FLOW_API_KEY:
+    if LLM_PROVIDER == 'silicon_flow' and not SILICON_FLOW_API_KEY:
         yield "data: Error: API key not configured\n\n"
         return
 
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {SILICON_FLOW_API_KEY}"
-    }
+    headers = {"Content-Type": "application/json"}
+    if LLM_API_KEY:
+        headers["Authorization"] = f"Bearer {LLM_API_KEY}"
     
     payload = {
         "model": LLM_MODEL,
         "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 2048,
-        "temperature": 0.7,
-        "stream": True  # Enable streaming
+        "stream": True
     }
+    
+    # Silicon Flow格式需要max_tokens
+    if LLM_PROVIDER == 'silicon_flow':
+        payload["max_tokens"] = 2048
+        payload["temperature"] = 0.7
 
     try:
         response = requests.post(
-            SILICON_FLOW_API_URL, 
+            LLM_API_URL, 
             headers=headers, 
             data=json.dumps(payload), 
             stream=True,
@@ -303,20 +353,31 @@ def call_llm_stream(prompt: str):
         for line in response.iter_lines():
             if line:
                 line_text = line.decode('utf-8')
+                
+                # Silicon Flow格式
                 if line_text.startswith('data: '):
-                    line_text = line_text[6:]  # Remove 'data: ' prefix
-                    
+                    line_text = line_text[6:]
                     if line_text.strip() == '[DONE]':
                         break
-                        
                     try:
                         data = json.loads(line_text)
                         if 'choices' in data and len(data['choices']) > 0:
                             delta = data['choices'][0].get('delta', {})
                             content = delta.get('content', '')
                             if content:
-                                # Send as SSE format
                                 yield f"data: {json.dumps({'content': content})}\n\n"
+                    except json.JSONDecodeError:
+                        continue
+                # Ollama格式（直接返回JSON）
+                else:
+                    try:
+                        data = json.loads(line_text)
+                        if 'message' in data:
+                            content = data['message'].get('content', '')
+                            if content:
+                                yield f"data: {json.dumps({'content': content})}\n\n"
+                        if data.get('done', False):
+                            break
                     except json.JSONDecodeError:
                         continue
                         
@@ -462,39 +523,47 @@ Return ONLY the ID number."""
 
 def call_llm_for_selection(prompt):
     """Helper function to call LLM and extract ID from response"""
-    if not SILICON_FLOW_API_KEY:
+    if LLM_PROVIDER == 'silicon_flow' and not SILICON_FLOW_API_KEY:
         print("[ERROR] API Key 未配置！")
         return None
     
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {SILICON_FLOW_API_KEY}"
-    }
+    headers = {"Content-Type": "application/json"}
+    if LLM_API_KEY:
+        headers["Authorization"] = f"Bearer {LLM_API_KEY}"
     
     payload = {
         "model": LLM_MODEL,
         "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 50,
-        "temperature": 0.3
+        "stream": False
     }
     
+    if LLM_PROVIDER == 'silicon_flow':
+        payload["max_tokens"] = 50
+        payload["temperature"] = 0.3
+    
     try:
-        print(f"[LLM] 调用模型: {LLM_MODEL}")
+        print(f"[LLM] 调用模型: {LLM_MODEL} (Provider: {LLM_PROVIDER})")
         print(f"[LLM] Prompt 长度: {len(prompt)} 字符")
         
-        response = requests.post(SILICON_FLOW_API_URL, headers=headers, 
+        response = requests.post(LLM_API_URL, headers=headers, 
                                 data=json.dumps(payload), timeout=60)
         
         print(f"[LLM] 响应状态码: {response.status_code}")
         
         result = response.json()
         
-        # 如果是错误响应，打印详细错误信息
         if response.status_code != 200:
             print(f"[ERROR] API 返回错误: {result}")
             return None
         
-        content = result['choices'][0]['message']['content'].strip()
+        # 兼容不同格式的响应
+        if 'choices' in result:
+            content = result['choices'][0]['message']['content'].strip()
+        elif 'message' in result:
+            content = result['message']['content'].strip()
+        else:
+            print(f"[ERROR] 无法解析响应格式: {result}")
+            return None
         
         print(f"[LLM] 返回内容: '{content}'")
         
@@ -551,7 +620,7 @@ def get_l4_info(l4_id):
             conn.close()
 
 
-def generate_stream_response(user_query, session_id='default', bazi_data=None):
+def generate_stream_response(user_query, session_id='default', bazi_data=None, user_state=None):
     """Generate streaming response with L4 knowledge boundary and conversation context"""
     
     import sys
@@ -560,21 +629,24 @@ def generate_stream_response(user_query, session_id='default', bazi_data=None):
     print(f"[STREAM] Session ID: '{session_id}'", flush=True)
     print(f"[STREAM] 用户问题: '{user_query}'", flush=True)
     print(f"[STREAM] 八字数据: {bazi_data}", flush=True)
+    print(f"[STREAM] 用户所在州: {user_state if user_state else '未指定'}", flush=True)
     print(f"{'='*60}\n", flush=True)
     sys.stdout.flush()
     
     # 获取会话
     session = get_or_create_session(session_id)
     
-    # === V2 新增：调用 MCP 获取排盘结果 ===
+    # === V2 新增：调用 MCP 获取排盘结果（优化：会话中已有则复用，不重复调用） ===
     bazi_result = None
-    bazi_text = None
-    if bazi_data:
+    bazi_text = session.get('bazi_text')  # 先尝试从会话中获取
+    
+    # 只有当会话中没有八字信息，且前端传了新的八字数据时，才调用MCP
+    if not bazi_text and bazi_data:
         from .bazi_mcp_client import call_bazi_mcp, format_bazi_for_llm
         
         yield f"data: {json.dumps({'status': 'Getting Bazi chart...'})}\n\n"
         
-        print("[MCP] 开始调用 bazi-mcp 工具...", flush=True)
+        print("[MCP] 会话中无八字信息，开始调用 bazi-mcp 工具...", flush=True)
         sys.stdout.flush()
         
         bazi_result = call_bazi_mcp(
@@ -583,7 +655,7 @@ def generate_stream_response(user_query, session_id='default', bazi_data=None):
         )
         
         if bazi_result:
-            print("[MCP] ✅ 成功获取八字排盘结果", flush=True)
+            print("[MCP] ✅ 成功获取八字排盘结果，已保存到会话", flush=True)
             sys.stdout.flush()
             bazi_text = format_bazi_for_llm(bazi_result)
             # 保存到会话中，后续对话可以复用
@@ -592,12 +664,9 @@ def generate_stream_response(user_query, session_id='default', bazi_data=None):
         else:
             print("[MCP] ❌ 获取八字排盘失败", flush=True)
             sys.stdout.flush()
-    else:
-        # 尝试从会话中获取之前的八字信息
-        bazi_text = session.get('bazi_text')
-        if bazi_text:
-            print("[MCP] 使用会话中保存的八字信息", flush=True)
-            sys.stdout.flush()
+    elif bazi_text:
+        print("[MCP] ✅ 复用会话中已保存的八字信息，跳过MCP调用", flush=True)
+        sys.stdout.flush()
     
     # Send initial status
     yield f"data: {json.dumps({'status': 'Analyzing your question...'})}\n\n"
@@ -623,7 +692,7 @@ def generate_stream_response(user_query, session_id='default', bazi_data=None):
         yield f"data: {json.dumps({'status': 'Answering your question...'})}\n\n"
         
         # 构建通用 prompt（不依赖知识库）
-        prompt = build_general_prompt(user_query, session['history'][:-1], bazi_text)
+        prompt = build_general_prompt(user_query, session['history'][:-1], bazi_text, user_state)
         
         print(f"[STREAM] 使用通用 Prompt，长度: {len(prompt)} 字符", flush=True)
         if bazi_text:
@@ -663,7 +732,7 @@ def generate_stream_response(user_query, session_id='default', bazi_data=None):
         yield f"data: {json.dumps({'status': 'Answering your question...'})}\n\n"
         
         # 构建通用 prompt
-        prompt = build_general_prompt(user_query, session['history'][:-1], bazi_text)
+        prompt = build_general_prompt(user_query, session['history'][:-1], bazi_text, user_state)
         
         print(f"[STREAM] 使用通用 Prompt，长度: {len(prompt)} 字符", flush=True)
         if bazi_text:
@@ -701,7 +770,7 @@ def generate_stream_response(user_query, session_id='default', bazi_data=None):
     yield f"data: {json.dumps(matched_msg)}\n\n"
     
     # 构建 prompt（简洁版）
-    prompt = build_contextualized_prompt(user_query, l4_info, session['history'][:-1], bazi_text)  # 历史不包含当前问题
+    prompt = build_contextualized_prompt(user_query, l4_info, session['history'][:-1], bazi_text, user_state)  # 历史不包含当前问题
     
     print(f"[STREAM] 构建知识库增强 Prompt，长度: {len(prompt)} 字符", flush=True)
     if bazi_text:
@@ -753,11 +822,17 @@ def ask_advisor(request):
             except json.JSONDecodeError:
                 print(f"[BAZI] 解析命理数据失败: {bazi_data_str}")
         
+        # === V4 新增：获取用户所在州（文化适配） ===
+        user_state = request.POST.get('user_state', '').strip()
+        if user_state:
+            print(f"[CULTURAL] 用户所在州: {user_state}")
+        
         # 添加调试日志
         print(f"\n{'='*60}")
         print(f"[REQUEST] 收到用户问题: '{user_query}'")
         print(f"[REQUEST] 会话ID: {session_id}")
         print(f"[REQUEST] 八字数据: {'有' if bazi_data else '无'}")
+        print(f"[REQUEST] 用户所在州: {user_state if user_state else '未指定'}")
         print(f"[REQUEST] API Key存在: {bool(SILICON_FLOW_API_KEY)}")
         print(f"[REQUEST] 使用模型: {LLM_MODEL}")
         print(f"{'='*60}\n")
@@ -770,7 +845,7 @@ def ask_advisor(request):
             )
         
         response = StreamingHttpResponse(
-            generate_stream_response(user_query, session_id, bazi_data),
+            generate_stream_response(user_query, session_id, bazi_data, user_state),
             content_type='text/event-stream'
         )
         response['Cache-Control'] = 'no-cache'

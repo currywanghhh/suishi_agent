@@ -1,0 +1,219 @@
+{
+  "version": "1.0",
+  "last_updated": "2025-12-16",
+  "description": "美国50州文化特性映射表（隐性文化描述，不含宗教字眼）",
+  
+  "states": {
+    "Alabama": {
+      "region": "South",
+      "prompt_text": "This user is from Alabama, where people typically embrace deep Southern traditions, maintain strong family and community bonds, enjoy traditional comfort foods, and have a warm, polite social style with a slower life pace."
+    },
+    "Alaska": {
+      "region": "West",
+      "prompt_text": "This user is from Alaska, where people typically value rugged self-reliance, have deep connections to nature and outdoor life, appreciate privacy and independence, and maintain a friendly but reserved social approach."
+    },
+    "Arizona": {
+      "region": "Southwest",
+      "prompt_text": "This user is from Arizona, where people typically enjoy desert outdoor living, appreciate Western and Hispanic cultural influences, value independence, and have a friendly, laid-back approach to life."
+    },
+    "Arkansas": {
+      "region": "South",
+      "prompt_text": "This user is from Arkansas, where people typically embrace Southern rural traditions, have strong community bonds, enjoy outdoor activities and traditional foods, and maintain a warm, neighborly social style."
+    },
+    "California": {
+      "region": "West",
+      "prompt_text": "This user is from California, where people typically value health and wellness, prefer fresh and plant-based foods, embrace innovation and personal growth, and maintain an open, inclusive social style with moderate life pace."
+    },
+    "Colorado": {
+      "region": "West",
+      "prompt_text": "This user is from Colorado, where people typically embrace an active outdoor lifestyle, are health and fitness conscious, value environmental sustainability, and have a friendly, adventure-oriented social approach."
+    },
+    "Connecticut": {
+      "region": "Northeast",
+      "prompt_text": "This user is from Connecticut, where people typically blend New England traditions with metropolitan influences, value education and achievement, maintain family-oriented suburban lifestyles, and have a reserved but polite social manner."
+    },
+    "Delaware": {
+      "region": "Northeast",
+      "prompt_text": "This user is from Delaware, where people typically enjoy a small-state community atmosphere, have practical and business-friendly mindsets, value convenience, and maintain a friendly, accessible social approach."
+    },
+    "Florida": {
+      "region": "South",
+      "prompt_text": "This user is from Florida, where people typically enjoy a relaxed, outdoor lifestyle, appreciate diverse cultural influences, and value leisure time with a friendly, easygoing social approach."
+    },
+    "Georgia": {
+      "region": "South",
+      "prompt_text": "This user is from Georgia, where people typically embrace Southern hospitality, enjoy traditional comfort foods, value family gatherings and community bonds, and have a warm, gracious social style."
+    },
+    "Hawaii": {
+      "region": "West",
+      "prompt_text": "This user is from Hawaii, where people typically embody the Aloha spirit of warmth and hospitality, have deep connections to nature and ocean, appreciate diverse cultural influences, and maintain a relaxed, inclusive social approach."
+    },
+    "Idaho": {
+      "region": "West",
+      "prompt_text": "This user is from Idaho, where people typically embrace rural outdoor lifestyles, value independence and self-reliance, prioritize family and traditional values, and have a friendly, genuine social manner."
+    },
+    "Illinois": {
+      "region": "Midwest",
+      "prompt_text": "This user is from Illinois, where people typically combine Midwestern warmth with urban sensibility, enjoy comfort food traditions, value reliability, and communicate in a friendly, straightforward manner."
+    },
+    "Indiana": {
+      "region": "Midwest",
+      "prompt_text": "This user is from Indiana, where people typically embody Midwestern values, prioritize family and community stability, take a practical approach to life, and are friendly and genuine."
+    },
+    "Iowa": {
+      "region": "Midwest",
+      "prompt_text": "This user is from Iowa, where people typically have strong agricultural roots, value community cooperation and neighborliness, take a practical approach to decisions, and maintain a friendly, helpful social manner."
+    },
+    "Kansas": {
+      "region": "Midwest",
+      "prompt_text": "This user is from Kansas, where people typically embrace heartland values, have strong agricultural traditions, value honesty and practical dealing, and maintain a friendly, genuine social approach."
+    },
+    "Kentucky": {
+      "region": "South",
+      "prompt_text": "This user is from Kentucky, where people typically blend Southern charm with mountain heritage, maintain strong family traditions, enjoy comfort foods and outdoor activities, and have a warm, hospitable social style."
+    },
+    "Louisiana": {
+      "region": "South",
+      "prompt_text": "This user is from Louisiana, where people typically embrace rich Cajun and Creole heritage, love festive celebrations and music, enjoy bold flavorful foods, and have a warm, celebratory approach to social life."
+    },
+    "Maine": {
+      "region": "Northeast",
+      "prompt_text": "This user is from Maine, where people typically embrace rugged New England values, have strong connections to nature and the sea, value independence and self-reliance, and have a reserved but genuine social manner."
+    },
+    "Maryland": {
+      "region": "Northeast",
+      "prompt_text": "This user is from Maryland, where people typically blend Southern warmth with metropolitan efficiency, enjoy diverse communities and seafood traditions, value education and achievement, and maintain a friendly, professional social approach."
+    },
+    "Massachusetts": {
+      "region": "Northeast",
+      "prompt_text": "This user is from Massachusetts, where people typically value education and intellectual pursuits, appreciate rich cultural heritage, live at a fast pace, and have a reserved but warm social style."
+    },
+    "Michigan": {
+      "region": "Midwest",
+      "prompt_text": "This user is from Michigan, where people typically have strong work ethics, enjoy outdoor and lake activities, prioritize family stability and community roots, and are friendly and hardworking."
+    },
+    "Minnesota": {
+      "region": "Midwest",
+      "prompt_text": "This user is from Minnesota, where people typically have Scandinavian-influenced politeness, strong community values, enjoy outdoor activities year-round, and maintain a polite, consensus-seeking social approach."
+    },
+    "Mississippi": {
+      "region": "South",
+      "prompt_text": "This user is from Mississippi, where people typically embrace deep Southern traditions, place strong emphasis on family gatherings and community relationships, enjoy traditional comfort foods, and have a warm, slower-paced lifestyle."
+    },
+    "Missouri": {
+      "region": "Midwest",
+      "prompt_text": "This user is from Missouri, where people typically blend Midwestern and Southern values, value practicality and common-sense decisions, enjoy BBQ culture, and have a friendly but discerning social style."
+    },
+    "Montana": {
+      "region": "West",
+      "prompt_text": "This user is from Montana, where people typically embrace rugged frontier values, have deep connections to nature and open spaces, value independence and self-sufficiency, and maintain a friendly but private social manner."
+    },
+    "Nebraska": {
+      "region": "Midwest",
+      "prompt_text": "This user is from Nebraska, where people typically have strong agricultural roots, value community and mutual support, take a practical unpretentious approach to life, and maintain a friendly, humble social manner."
+    },
+    "Nevada": {
+      "region": "West",
+      "prompt_text": "This user is from Nevada, where people typically value personal freedom and independence, are influenced by entertainment culture, embrace diversity, and maintain an open, flexible social approach."
+    },
+    "New Hampshire": {
+      "region": "Northeast",
+      "prompt_text": "This user is from New Hampshire, where people typically embrace strong independent spirit, value New England traditions, prioritize self-reliance, and maintain a reserved but genuine social approach."
+    },
+    "New Jersey": {
+      "region": "Northeast",
+      "prompt_text": "This user is from New Jersey, where people typically live in a diverse suburban-urban mix, balance fast-paced lifestyles with family priorities, value convenience, and communicate directly."
+    },
+    "New Mexico": {
+      "region": "Southwest",
+      "prompt_text": "This user is from New Mexico, where people typically embrace rich Native American and Hispanic heritage, appreciate arts and cultural traditions, value connection to the land, and have a warm, artistic social approach."
+    },
+    "New York": {
+      "region": "Northeast",
+      "prompt_text": "This user is from New York, where people typically live fast-paced lives, value efficiency and career success, embrace multicultural diversity, and communicate in a direct, professional manner."
+    },
+    "North Carolina": {
+      "region": "South",
+      "prompt_text": "This user is from North Carolina, where people typically blend traditional Southern values with modern sensibilities, appreciate nature and outdoor activities, and maintain a friendly, respectful social approach."
+    },
+    "North Dakota": {
+      "region": "Midwest",
+      "prompt_text": "This user is from North Dakota, where people typically have strong Scandinavian and German heritage, value hard work and resilience, maintain close community bonds, and have a reserved but supportive social manner."
+    },
+    "Ohio": {
+      "region": "Midwest",
+      "prompt_text": "This user is from Ohio, where people typically prioritize family and community, take a practical, down-to-earth approach to life, value stability, and maintain warm, community-oriented relationships."
+    },
+    "Oklahoma": {
+      "region": "South",
+      "prompt_text": "This user is from Oklahoma, where people typically embrace Native American and Western heritage, value hospitality and friendliness, enjoy outdoor and country activities, and maintain a warm, welcoming social approach."
+    },
+    "Oregon": {
+      "region": "West",
+      "prompt_text": "This user is from Oregon, where people typically are environmentally conscious, value individuality and creativity, enjoy outdoor activities, and maintain a casual, progressive social approach."
+    },
+    "Pennsylvania": {
+      "region": "Northeast",
+      "prompt_text": "This user is from Pennsylvania, where people typically blend urban and rural values, appreciate hard work and practical living, maintain strong family ties, and have a friendly, grounded social approach."
+    },
+    "Rhode Island": {
+      "region": "Northeast",
+      "prompt_text": "This user is from Rhode Island, where people typically have strong European heritage influences, maintain close-knit community bonds, value family traditions and local culture, and have a warm, family-oriented social approach."
+    },
+    "South Carolina": {
+      "region": "South",
+      "prompt_text": "This user is from South Carolina, where people typically embrace deep Southern hospitality, have strong sense of history and tradition, enjoy coastal culture, and maintain a gracious, charming social manner."
+    },
+    "South Dakota": {
+      "region": "Midwest",
+      "prompt_text": "This user is from South Dakota, where people typically respect Native American heritage, embrace rural agricultural values, prioritize independence and self-sufficiency, and maintain a friendly, self-reliant social approach."
+    },
+    "Tennessee": {
+      "region": "South",
+      "prompt_text": "This user is from Tennessee, where people typically embrace music and arts culture, value Southern hospitality, enjoy comfort food and community gatherings, and have a warm, friendly social approach."
+    },
+    "Texas": {
+      "region": "South",
+      "prompt_text": "This user is from Texas, where people typically have strong community bonds, enjoy hearty comfort foods like BBQ, value independence and self-reliance, and have a warm, hospitable social style."
+    },
+    "Utah": {
+      "region": "West",
+      "prompt_text": "This user is from Utah, where people typically have very strong family values, prefer healthy lifestyles without alcohol or tobacco, enjoy outdoor recreation, and maintain close community bonds."
+    },
+    "Vermont": {
+      "region": "Northeast",
+      "prompt_text": "This user is from Vermont, where people typically value environmental sustainability, embrace farm-to-table food culture, prioritize independence and local community, and maintain a friendly, eco-conscious social approach."
+    },
+    "Virginia": {
+      "region": "South",
+      "prompt_text": "This user is from Virginia, where people typically appreciate historical traditions while embracing modern progress, value education and achievement, and blend Southern politeness with professional efficiency."
+    },
+    "Washington": {
+      "region": "West",
+      "prompt_text": "This user is from Washington, where people typically embrace technology and innovation, are environmentally conscious, enjoy outdoor activities, and have a casual, forward-thinking social style."
+    },
+    "West Virginia": {
+      "region": "South",
+      "prompt_text": "This user is from West Virginia, where people typically embrace Appalachian heritage, value family loyalty and community support, enjoy mountain outdoor activities, and maintain a warm, genuine social manner."
+    },
+    "Wisconsin": {
+      "region": "Midwest",
+      "prompt_text": "This user is from Wisconsin, where people typically have German and Scandinavian heritage, value hard work and community, enjoy dairy traditions and outdoor activities, and maintain a friendly, community-focused social approach."
+    },
+    "Wyoming": {
+      "region": "West",
+      "prompt_text": "This user is from Wyoming, where people typically embrace frontier cowboy heritage, value independence and wide-open spaces, have close-knit but self-reliant communities, and maintain a friendly but private social manner."
+    }
+  },
+  
+  "default_prompt": "This user has not specified their location. Provide general Wu Xing advice without cultural assumptions.",
+  
+  "forbidden_terms": [
+    "Christian", "Catholic", "Protestant", "Jewish", "Mormon", "LDS", "Buddhist",
+    "Hindu", "Muslim", "Islam", "Jesus", "Christ", "God", "Church", "Temple",
+    "Synagogue", "Mosque", "Bible", "Torah", "Quran", "Prayer", "Worship",
+    "Religious", "Faith", "Believer", "Saint", "Pope", "Rabbi", "Priest",
+    "Hallelujah", "Amen", "Blessed", "Holy", "Scripture", "Sermon", "Pastor",
+    "Minister", "Imam", "Monk", "Nun", "Diocese", "Parish"
+  ]
+}
