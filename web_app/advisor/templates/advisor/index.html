@@ -129,6 +129,56 @@
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
 
+        /* === V2 新增：决策头部样式 === */
+        .decision-header {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border-left: 4px solid #667eea;
+        }
+
+        .decision-signal {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .signal-icon {
+            font-size: 32px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .signal-text {
+            font-size: 14px;
+            color: #4e5969;
+            font-weight: 600;
+        }
+
+        .decision-vibe {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 6px 12px;
+            border-radius: 16px;
+            display: inline-block;
+            font-size: 13px;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .decision-instruction {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1f2329;
+            line-height: 1.5;
+        }
+
         /* 内容样式 */
         .section-title {
             font-size: 16px;
@@ -183,6 +233,101 @@
             gap: 8px;
             margin-bottom: 12px;
             flex-wrap: wrap;
+        }
+
+        /* === V2 新增：八字输入表单样式 === */
+        .bazi-form-container {
+            background: #f7f8fa;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid #e5e6eb;
+        }
+
+        .bazi-form-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .bazi-form-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #1f2329;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bazi-toggle-icon {
+            font-size: 12px;
+            color: #86909c;
+            transition: transform 0.3s;
+        }
+
+        .bazi-toggle-icon.open {
+            transform: rotate(180deg);
+        }
+
+        .bazi-form-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .bazi-form-content.show {
+            max-height: 500px;
+        }
+
+        .bazi-form-fields {
+            margin-top: 16px;
+        }
+
+        .bazi-form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .bazi-form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .bazi-form-field.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .bazi-form-field label {
+            font-size: 12px;
+            color: #4e5969;
+            font-weight: 500;
+        }
+
+        .bazi-form-field input,
+        .bazi-form-field select {
+            padding: 8px 12px;
+            border: 1px solid #e5e6eb;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .bazi-form-field input:focus,
+        .bazi-form-field select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .bazi-hint {
+            font-size: 12px;
+            color: #86909c;
+            margin-top: 4px;
         }
 
         .chip {
@@ -398,6 +543,112 @@
         <!-- 输入区域 -->
         <div class="input-area">
             <div class="input-wrapper">
+                <!-- === V2 新增：八字输入表单 === -->
+                <div class="bazi-form-container">
+                    <div class="bazi-form-header" id="bazi-form-toggle">
+                        <div class="bazi-form-title">
+                            🔮 命理信息（可选）
+                        </div>
+                        <div class="bazi-toggle-icon">▼</div>
+                    </div>
+                    <div class="bazi-form-content" id="bazi-form-content">
+                        <div class="bazi-form-fields">
+                            <div class="bazi-form-row">
+                                <div class="bazi-form-field">
+                                    <label for="birth-date">出生日期（公历）</label>
+                                    <input type="date" id="birth-date" placeholder="例如：1998-07-31">
+                                </div>
+                                <div class="bazi-form-field">
+                                    <label for="birth-time">出生时间</label>
+                                    <input type="time" id="birth-time" placeholder="例如：14:10">
+                                </div>
+                            </div>
+                            <div class="bazi-form-row">
+                                <div class="bazi-form-field">
+                                    <label for="gender">性别</label>
+                                    <select id="gender">
+                                        <option value="1">男</option>
+                                        <option value="0">女</option>
+                                    </select>
+                                </div>
+                                <div class="bazi-form-field">
+                                    <label for="timezone">时区</label>
+                                    <select id="timezone">
+                                        <option value="+08:00" selected>GMT+8 (北京时间)</option>
+                                        <option value="+09:00">GMT+9 (东京)</option>
+                                        <option value="+07:00">GMT+7 (曼谷)</option>
+                                        <option value="+00:00">GMT+0 (伦敦)</option>
+                                        <option value="-05:00">GMT-5 (纽约)</option>
+                                        <option value="-08:00">GMT-8 (洛杉矶)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <!-- V4 新增：州选择（北美市场文化适配） -->
+                            <div class="bazi-form-row">
+                                <div class="bazi-form-field full-width">
+                                    <label for="user-state">🇺🇸 Your State (Optional - for personalized advice)</label>
+                                    <select id="user-state">
+                                        <option value="">-- Select Your State --</option>
+                                        <option value="Alabama">Alabama</option>
+                                        <option value="Alaska">Alaska</option>
+                                        <option value="Arizona">Arizona</option>
+                                        <option value="Arkansas">Arkansas</option>
+                                        <option value="California">California</option>
+                                        <option value="Colorado">Colorado</option>
+                                        <option value="Connecticut">Connecticut</option>
+                                        <option value="Delaware">Delaware</option>
+                                        <option value="Florida">Florida</option>
+                                        <option value="Georgia">Georgia</option>
+                                        <option value="Hawaii">Hawaii</option>
+                                        <option value="Idaho">Idaho</option>
+                                        <option value="Illinois">Illinois</option>
+                                        <option value="Indiana">Indiana</option>
+                                        <option value="Iowa">Iowa</option>
+                                        <option value="Kansas">Kansas</option>
+                                        <option value="Kentucky">Kentucky</option>
+                                        <option value="Louisiana">Louisiana</option>
+                                        <option value="Maine">Maine</option>
+                                        <option value="Maryland">Maryland</option>
+                                        <option value="Massachusetts">Massachusetts</option>
+                                        <option value="Michigan">Michigan</option>
+                                        <option value="Minnesota">Minnesota</option>
+                                        <option value="Mississippi">Mississippi</option>
+                                        <option value="Missouri">Missouri</option>
+                                        <option value="Montana">Montana</option>
+                                        <option value="Nebraska">Nebraska</option>
+                                        <option value="Nevada">Nevada</option>
+                                        <option value="New Hampshire">New Hampshire</option>
+                                        <option value="New Jersey">New Jersey</option>
+                                        <option value="New Mexico">New Mexico</option>
+                                        <option value="New York">New York</option>
+                                        <option value="North Carolina">North Carolina</option>
+                                        <option value="North Dakota">North Dakota</option>
+                                        <option value="Ohio">Ohio</option>
+                                        <option value="Oklahoma">Oklahoma</option>
+                                        <option value="Oregon">Oregon</option>
+                                        <option value="Pennsylvania">Pennsylvania</option>
+                                        <option value="Rhode Island">Rhode Island</option>
+                                        <option value="South Carolina">South Carolina</option>
+                                        <option value="South Dakota">South Dakota</option>
+                                        <option value="Tennessee">Tennessee</option>
+                                        <option value="Texas">Texas</option>
+                                        <option value="Utah">Utah</option>
+                                        <option value="Vermont">Vermont</option>
+                                        <option value="Virginia">Virginia</option>
+                                        <option value="Washington">Washington</option>
+                                        <option value="West Virginia">West Virginia</option>
+                                        <option value="Wisconsin">Wisconsin</option>
+                                        <option value="Wyoming">Wyoming</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="bazi-hint">
+                                💡 提示：输入命理信息后，系统将基于您的八字进行更精准的五行分析
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="example-chips" id="example-chips">
                     <div class="chip">How to handle cultural differences in dating?</div>
                     <div class="chip">How to balance work and personal time?</div>
@@ -417,6 +668,24 @@
         const queryInput = document.getElementById('query-input');
         const sendBtn = document.getElementById('send-btn');
         const exampleChips = document.querySelectorAll('.chip');
+
+        // === V2 新增：八字表单元素 ===
+        const baziFormToggle = document.getElementById('bazi-form-toggle');
+        const baziFormContent = document.getElementById('bazi-form-content');
+        const baziToggleIcon = baziFormToggle.querySelector('.bazi-toggle-icon');
+        const birthDateInput = document.getElementById('birth-date');
+        const birthTimeInput = document.getElementById('birth-time');
+        const genderInput = document.getElementById('gender');
+        const timezoneInput = document.getElementById('timezone');
+        
+        // === V4 新增：州选择元素 ===
+        const userStateInput = document.getElementById('user-state');
+
+        // 八字表单折叠/展开
+        baziFormToggle.addEventListener('click', () => {
+            baziFormContent.classList.toggle('show');
+            baziToggleIcon.classList.toggle('open');
+        });
 
         // Session管理：获取或生成session_id
         let sessionId = localStorage.getItem('advisor_session_id');
@@ -526,10 +795,33 @@
             // 添加助手消息框
             const responseContent = addAssistantMessage();
 
+            // === V2 新增：收集八字数据 ===
+            let baziData = null;
+            if (birthDateInput.value && birthTimeInput.value) {
+                // 构建ISO格式的公历时间
+                const solarDatetime = `${birthDateInput.value}T${birthTimeInput.value}:00${timezoneInput.value}`;
+                baziData = {
+                    solar_datetime: solarDatetime,
+                    gender: parseInt(genderInput.value),
+                };
+                console.log('[Bazi] 收集到命理数据:', baziData);
+            }
+
             // 创建form data
             const formData = new FormData();
             formData.append('query', query);
             formData.append('session_id', sessionId);  // 发送session_id
+            
+            // 添加八字数据
+            if (baziData) {
+                formData.append('bazi_data', JSON.stringify(baziData));
+            }
+            
+            // === V4 新增：添加用户所在州 ===
+            if (userStateInput.value) {
+                formData.append('user_state', userStateInput.value);
+                console.log('[Cultural] 用户所在州:', userStateInput.value);
+            }
 
             // 获取CSRF token
             const csrftoken = getCookie('csrftoken');
@@ -588,16 +880,36 @@
                                     return;
                                 }
 
+                                // === V2 新增：处理决策头部 ===
+                                if (data.decision_header) {
+                                    const header = data.decision_header;
+                                    const headerHTML = `
+                                        <div class="decision-header">
+                                            <div class="decision-signal">
+                                                <span class="signal-icon">${header.signal}</span>
+                                                <span class="signal-text">${
+                                                    header.signal === '🟢' ? 'Green Light - Go For It' :
+                                                    header.signal === '🟡' ? 'Yellow Light - Proceed With Caution' :
+                                                    'Red Light - Stop & Reconsider'
+                                                }</span>
+                                            </div>
+                                            <div class="decision-vibe">⚡ ${escapeHtml(header.vibe)}</div>
+                                            <div class="decision-instruction">${escapeHtml(header.instruction)}</div>
+                                        </div>
+                                    `;
+                                    responseContent.innerHTML = headerHTML;
+                                    isFirstContent = false;
+                                    scrollToBottom();
+                                }
+
                                 // 处理内容流
                                 if (data.content) {
-                                    if (isFirstContent) {
-                                        responseContent.innerHTML = '';
-                                        isFirstContent = false;
-                                    }
-                                    
                                     fullResponse += data.content;
-                                    // 实时渲染（保留换行格式）
-                                    responseContent.innerHTML = `<div style="white-space: pre-wrap;">${escapeHtml(fullResponse)}</div>`;
+                                    // 如果有决策头部，保留它并追加内容
+                                    const hasHeader = responseContent.querySelector('.decision-header');
+                                    const headerHTML = hasHeader ? hasHeader.outerHTML : '';
+                                    const contentHTML = `<div style="white-space: pre-wrap; margin-top: ${hasHeader ? '12px' : '0'};">${escapeHtml(fullResponse)}</div>`;
+                                    responseContent.innerHTML = headerHTML + contentHTML;
                                     scrollToBottom();
                                 }
                             } catch (e) {
