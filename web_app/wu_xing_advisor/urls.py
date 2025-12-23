@@ -20,5 +20,6 @@ from django.urls import path, include
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("advisor/", include("advisor.urls")),
+    path("im/", include("im_bridge.urls")),  # 网易云信IM接口
     path("", include("advisor.urls")),  # Make advisor the home page
 ]
